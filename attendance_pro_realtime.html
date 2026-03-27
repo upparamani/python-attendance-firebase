@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Attendance System V6 (Realtime Firebase)</title>
+<link rel="stylesheet" href="style.css">
+<script src="students.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+</head>
+
+<body>
+<h2 style="text-align:center;">KLS Gogte Institute of Technology</h2>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc, onSnapshot } 
+from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "PASTE",
+  authDomain: "PASTE",
+  projectId: "PASTE",
+  storageBucket: "PASTE",
+  messagingSenderId: "PASTE",
+  appId: "PASTE"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const ref = doc(db,"attendance","main");
+
+function getEl(id){ return document.getElementById(id); }
+
+function findStudent(usn){
+  return STUDENTS.find(s=>s.id===usn);
+}
+
+async function openSession(){
+  let token=Math.floor(1000+Math.random()*9000);
+  let data={
+    activeSession:{
+      token,
+      present:[],
+      times:{},
+      paused:false
+    },
+    sessions:[]
+  };
+  await setDoc(ref,data);
+  alert("Session Opened Token: "+token);
+}
+
+async function submitAttendance(){
+  let usn=prompt("Enter USN").toUpperCase();
+  let token=prompt("Enter Token");
+
+  let snap=await getDoc(ref);
+  let data=snap.data();
+
+  if(!data || !data.activeSession){ alert("Closed"); return; }
+
+  if(token!=data.activeSession.token){ alert("Wrong Token"); return; }
+
+  if(data.activeSession.present.includes(usn)){
+    alert("Already Marked"); return;
+  }
+
+  let time=new Date().toLocaleTimeString();
+
+  data.activeSession.present.push(usn);
+  data.activeSession.times[usn]=time;
+
+  await setDoc(ref,data);
+  alert("Marked");
+}
+
+onSnapshot(ref,(snap)=>{
+  let data=snap.data();
+  if(!data || !data.activeSession) return;
+
+  console.clear();
+  console.log("LIVE ATTENDANCE");
+
+  data.activeSession.present.forEach(u=>{
+    let s=findStudent(u);
+    console.log(u, s?s.name:"", data.activeSession.times[u]);
+  });
+});
+
+window.openSession=openSession;
+window.submitAttendance=submitAttendance;
+
+</script>
+
+<div style="text-align:center;margin-top:20px;">
+<button onclick="openSession()">Open Session</button>
+<button onclick="submitAttendance()">Mark Attendance</button>
+</div>
+
+</body>
+</html>
