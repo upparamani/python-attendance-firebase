@@ -4,121 +4,26 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Attendance System V6</title>
-
 <link rel="stylesheet" href="style.css">
-
-<style>
-#toastBox{
-  position:fixed;top:28px;left:50%;transform:translateX(-50%);
-  z-index:9999;display:flex;flex-direction:column;align-items:center;gap:10px;
-  pointer-events:none;
-}
-.toast{
-  min-width:220px;padding:14px 26px;border-radius:14px;
-  font-size:1.15rem;font-weight:700;text-align:center;
-  box-shadow:0 8px 28px rgba(0,0,0,0.32);
-  opacity:0;transform:translateY(-16px) scale(0.93);
-  transition:opacity 0.28s ease,transform 0.28s ease;
-}
-.toast.show{opacity:1;transform:translateY(0) scale(1);}
-.toast.t-success{background:#00c97a;color:#fff;}
-.toast.t-error{background:#ff4466;color:#fff;}
-.toast.t-info{background:#2E6DA4;color:#fff;}
-</style>
-
 <script src="students.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 </head>
 
 <body>
+<h2>Firebase Attendance System (Full Version)</h2>
 
-<div id="toastBox"></div>
-
-<header>
-<h2>KLS Gogte Institute of Technology</h2>
-ISE Department · Attendance System
-</header>
-
-<div class="container">
-
-<!-- LOGIN -->
-<div id="login">
-  <div class="card hidden" id="profcard">
-    <h2>Professor</h2>
-    <button class="green" onclick="showProfessor()">Open Dashboard</button>
-  </div>
-  <div class="card">
-    <h3>Student</h3>
-    <button class="blue" onclick="showStudent()">Mark Attendance</button>
-  </div>
-</div>
-<!-- STUDENT -->
-<div id="student" class="hidden">
-  <div class="card">
-    <h3>Student Attendance</h3>
-    <input id="usnInput" placeholder="Enter USN" style="text-transform:uppercase" oninput="previewName()">
-    <div id="namePreview" style="color:#00e5ff;margin-bottom:10px"></div>
-    <input id="tokenInput" placeholder="4 digit token"><br>
-    <button id="submitBtn" class="green" onclick="submitAttendance()">Submit</button>
-    <div id="result"></div>
-  </div>
-</div>
-
-<!-- PROFESSOR -->
-<div id="prof" class="hidden">
-  <div class="card">
-    <h3>Professor Dashboard</h3>
-    Date: <input type="date" id="datePicker"><br>
-    <select id="period">
-      <option>P1</option>
-      <option>P2</option>
-    </select><br>
-    <button id="openBtn" class="green" onclick="openSession()">Open</button>
-    <button class="red" onclick="closeSession()">Close</button>
-    <button class="blue" onclick="pauseSession()">Pause</button>
-    <button class="green" onclick="resumeSession()">Resume</button>
-    <h2 id="statusDisplay" style="padding:10px;border-radius:8px;display:inline-block;">CLOSED</h2>
-    <div class="token" id="tokenDisplay"></div>
-    <div id="timer"></div>
-    <div id="count"></div>
-  </div>
-
-  <div class="card">
-    <h3>Live Attendance</h3>
-    <table id="attendTable">
-      <tr><th>USN</th><th>Name</th><th>Time</th></tr>
-    </table>
-  </div>
-
-  <div class="card">
-    <h3>Students Not Marked Yet</h3>
-    <table id="absentTable">
-      <tr><th>USN</th><th>Name</th></tr>
-    </table>
-  </div>
-
-  <div class="card">
-    <button onclick="exportExcel()">Export Excel</button>
-  </div>
-
-  <button onclick="goHome()">Exit</button>
-</div>
-
-</div>
 <script type="module">
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, doc, getDoc, setDoc } 
 from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// 🔴 PASTE YOUR CONFIG HERE
 const firebaseConfig = {
-  apiKey: "PASTE",
-  authDomain: "PASTE",
-  projectId: "PASTE",
-  storageBucket: "PASTE",
-  messagingSenderId: "PASTE",
-  appId: "PASTE"
+  apiKey: "AIzaSyCW5K1tVyvllOJRxFG7SRlcrvIcis88ozw",
+  authDomain: "python-22is444-attendance.firebaseapp.com",
+  projectId: "python-22is444-attendance",
+  storageBucket: "python-22is444-attendance.firebasestorage.app",
+  messagingSenderId: "650103171454",
+  appId: "1:650103171454:web:5f1e2cf8a273827589eb2f"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -135,50 +40,9 @@ async function apiPut(data){
   await setDoc(ref,data);
 }
 
-let timerInterval, pollInterval, paused=false;
-
-function getEl(id){ return document.getElementById(id); }
-
-function findStudent(usnVal){
-  return STUDENTS.find(s=>s.id===usnVal);
-}
-
-function updateStatusUI(state){
-  let el=getEl("statusDisplay");
-  el.innerText=state;
-  el.style.background = state==="OPEN"?"#00aa66":state==="PAUSED"?"#ffaa00":"#ff4466";
-}
-
-function hideAll(){
-  ["login","student","prof"].forEach(id=>getEl(id).style.display="none");
-}
-
-function showStudent(){ hideAll(); getEl("student").style.display="block"; }
-
-async function showProfessor(){
-  hideAll();
-  getEl("prof").style.display="block";
-  getEl("datePicker").value=new Date().toISOString().slice(0,10);
-}
-
-function goHome(){
-  clearInterval(timerInterval);
-  clearInterval(pollInterval);
-  hideAll();
-  getEl("login").style.display="block";
-}
-
-function previewName(){
-  let val=getEl("usnInput").value.trim().toUpperCase();
-  let stu=findStudent(val);
-  getEl("namePreview").innerText=stu?stu.name:"";
-}
-
-function randomToken(){ return Math.floor(1000+Math.random()*9000); }
-
-async function openSession(){
-  let token=randomToken();
-  let data={
+window.openSession = async function(){
+  let token = Math.floor(1000+Math.random()*9000);
+  let data = {
     activeSession:{
       token:token,
       present:[],
@@ -188,40 +52,40 @@ async function openSession(){
     sessions:[]
   };
   await apiPut(data);
-  getEl("tokenDisplay").innerText=token;
-  updateStatusUI("OPEN");
+  alert("Session Opened. Token: "+token);
 }
 
-async function submitAttendance(){
-  let usnVal=getEl("usnInput").value.trim().toUpperCase();
-  let tokenVal=getEl("tokenInput").value.trim();
+window.submitAttendance = async function(){
+  let usn = prompt("Enter USN").toUpperCase();
+  let token = prompt("Enter Token");
 
-  let data=await apiGet();
+  let data = await apiGet();
 
-  if(!data||!data.activeSession){
-    getEl("result").innerText="Session Closed"; return;
+  if(!data || !data.activeSession){
+    alert("Session Closed"); return;
   }
 
-  if(tokenVal!==String(data.activeSession.token)){
-    getEl("result").innerText="Wrong Token"; return;
+  if(token != data.activeSession.token){
+    alert("Wrong Token"); return;
   }
 
-  if(data.activeSession.present.includes(usnVal)){
-    getEl("result").innerText="Already Marked"; return;
+  if(data.activeSession.present.includes(usn)){
+    alert("Already Marked"); return;
   }
 
-  let now=new Date();
-  let time=now.getHours()+":"+now.getMinutes();
+  let time = new Date().toLocaleTimeString();
 
-  data.activeSession.present.push(usnVal);
-  data.activeSession.times[usnVal]=time;
+  data.activeSession.present.push(usn);
+  data.activeSession.times[usn]=time;
 
   await apiPut(data);
 
-  getEl("result").innerHTML="✓ Marked";
+  alert("Attendance Marked");
 }
-
 </script>
+
+<button onclick="openSession()">Open Session</button>
+<button onclick="submitAttendance()">Mark Attendance</button>
 
 </body>
 </html>
