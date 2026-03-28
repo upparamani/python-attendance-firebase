@@ -113,14 +113,7 @@ ISE Department · Attendance System
   <div class="card">
     <h3>Professor Dashboard</h3>
     Date: <input type="date" id="datePicker"><br>
-    <select id="period">
-      <option>P1</option>
-      <option>P2</option>
-      <option>P3</option>
-      <option>P4</option>
-      <option>P5</option>
-      <option>P6</option>
-    </select><br>
+    Period Time: <input type="time" id="period" style="width:130px"><br>
     <button id="openBtn" class="green" onclick="openSession()">Open</button>
     <button class="red" onclick="closeSession()">Close</button>
     <button class="blue" onclick="pauseSession()">Pause</button>
@@ -129,6 +122,7 @@ ISE Department · Attendance System
     <div class="token" id="tokenDisplay"></div>
     <div id="timer"></div>
     <div id="count"></div>
+    <br><button onclick="exportExcel()">📥 Export Excel</button>
   </div>
 
   <div class="card">
@@ -143,10 +137,6 @@ ISE Department · Attendance System
     <table id="absentTable">
       <tr><th>USN</th><th>Name</th></tr>
     </table>
-  </div>
-
-  <div class="card">
-    <button onclick="exportExcel()">Export Excel</button>
   </div>
 
   <button onclick="goHome()">Exit</button>
@@ -262,6 +252,7 @@ window.addEventListener("fbReady", () => {
     hideAll();
     getEl("prof").style.display = "block";
     getEl("datePicker").value   = new Date().toISOString().slice(0,10);
+    let _n=new Date(); getEl("period").value=String(_n.getHours()).padStart(2,'0')+':'+String(_n.getMinutes()).padStart(2,'0');
 
     clearInterval(timerInterval);
 
@@ -467,7 +458,7 @@ window.addEventListener("fbReady", () => {
       setCell(R,totalCols-1,"Generated: "+new Date().toLocaleString(),S_TS); R++;
 
       let header = ["Sl","USN","Name","Total","%"];
-      sessions.forEach(s => header.push(s.date+" "+s.period));
+      sessions.forEach(s => { let d=s.date?s.date.split('-').reverse().join('.'):''; header.push(d+(s.period?' '+s.period:'')); });
       header.forEach((h,c) => setCell(R,c,h, c>=5 ? S_DATEHDR : S_COLHDR));
       R++;
 
